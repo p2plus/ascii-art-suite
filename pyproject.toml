@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ascii-art-suite"
+version = "1.0.0"
+description = "Images to terminal art and text to FIGlet banners: native FIGfont engine, ANSI half-blocks, Unicode braille."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "asciiart contributors" }]
+requires-python = ">=3.9"
+keywords = ["ascii", "asciiart", "figlet", "figfont", "terminal", "braille", "ansicolor"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Artistic Software",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+    "Topic :: Terminals",
+]
+
+[project.optional-dependencies]
+image = ["Pillow>=9.0"]
+
+[project.scripts]
+asciiart = "asciiart.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["asciiart*"]
+
+[tool.setuptools.package-data]
+asciiart = ["fonts/*.flf"]

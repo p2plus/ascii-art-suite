@@ -1,0 +1,4 @@
+#!/bin/sh
+# Run asciiart from a checkout without installing anything.
+dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+PYTHONPATH="$dir${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m asciiart "$@"
