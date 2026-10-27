@@ -48,10 +48,10 @@ FONT_CANDIDATES = (
 ANSI_RE = re.compile(r"\x1b\[([0-9;]*)m")
 
 
-def load_font() -> ImageFont.FreeTypeFont:
+def load_font(size: int = FONT_SIZE) -> ImageFont.FreeTypeFont:
     for path in FONT_CANDIDATES:
         try:
-            font = ImageFont.truetype(path, FONT_SIZE)
+            font = ImageFont.truetype(path, size)
         except OSError:
             continue
         probes = "▀▄█⠀⢀⣿"
@@ -73,15 +73,23 @@ def capture(argv: list[str]) -> list[str]:
 # ---------------------------------------------------------------- terminal ui
 
 class Terminal:
-    def __init__(self, font: ImageFont.FreeTypeFont):
+    def __init__(self, font: ImageFont.FreeTypeFont, width: int = WIDTH,
+                 height: int = HEIGHT, title: str = "zsh - 80x24",
+                 line_h: int = LINE_H):
         self.font = font
         self.advance = font.getlength("M")
-        self.cols = int((WIDTH - 2 * MARGIN_X) / self.advance)
-        self.rows = (HEIGHT - MARGIN_Y - TITLE_H - MARGIN_Y) // LINE_H + 1
+        self.width, self.height, self.title = width, height, title
+        self.line_h = line_h
+        self.cols = int((width - 2 * MARGIN_X) / self.advance)
+        self.rows = (height - MARGIN_Y - TITLE_H - MARGIN_Y) // line_h + 1
         self.lines: list[list[tuple[str, tuple, tuple]]] = []
 
     def clear(self) -> None:
         self.lines = []
+
+    def add_prompt(self, command: str) -> None:
+        self.lines.append([("$", PROMPT, WIN_BG), (" ", WIN_BG, WIN_BG)]
+                          + [(c, CMD, WIN_BG) for c in command])
 
     def add_raw(self, text: str, fg: tuple = CMD, bg: tuple = WIN_BG) -> None:
         self.lines.append([(ch, fg, bg) for ch in text])
@@ -106,18 +114,18 @@ class Terminal:
         self.lines.append(cells)
 
     def render(self, cursor: tuple[int, int] | None = None) -> Image.Image:
-        img = Image.new("RGB", (WIDTH, HEIGHT), PAGE_BG)
+        width, height, line_h = self.width, self.height, self.line_h
+        img = Image.new("RGB", (width, height), PAGE_BG)
         draw = ImageDraw.Draw(img)
-        draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), fill=PAGE_BG)
+        draw.rectangle((0, 0, width - 1, height - 1), fill=PAGE_BG)
         # window with a soft border
-        draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), fill=WIN_BG, outline=BORDER, width=1)
-        draw.rectangle((0, 0, WIDTH - 1, TITLE_H), fill=TITLE_BG)
+        draw.rectangle((0, 0, width - 1, height - 1), fill=WIN_BG, outline=BORDER, width=1)
+        draw.rectangle((0, 0, width - 1, TITLE_H), fill=TITLE_BG)
         for i, color in enumerate(((255, 95, 86), (255, 189, 46), (39, 201, 63))):
             x = 18 + i * 24
             draw.ellipse((x, TITLE_H // 2 - 6, x + 12, TITLE_H // 2 + 6), fill=color)
-        title = "zsh - 80x24"
-        tw = draw.textlength(title, font=self.font)
-        draw.text(((WIDTH - tw) / 2, (TITLE_H - FONT_SIZE) / 2 - 2), title,
+        tw = draw.textlength(self.title, font=self.font)
+        draw.text(((width - tw) / 2, (TITLE_H - FONT_SIZE) / 2 - 2), self.title,
                   font=self.font, fill=DIM)
         visible = self.lines[-(self.rows - 1):]
         y = TITLE_H + MARGIN_Y
@@ -126,21 +134,21 @@ class Terminal:
             for ch, fg, bg in line:
                 cw = self.advance
                 if ch == "▀":
-                    draw.rectangle((x, y, x + cw, y + LINE_H // 2), fill=fg)
-                    draw.rectangle((x, y + LINE_H // 2, x + cw, y + LINE_H), fill=bg)
+                    draw.rectangle((x, y, x + cw, y + line_h // 2), fill=fg)
+                    draw.rectangle((x, y + line_h // 2, x + cw, y + line_h), fill=bg)
                 elif bg != WIN_BG:
-                    draw.rectangle((x, y, x + cw, y + LINE_H), fill=bg)
+                    draw.rectangle((x, y, x + cw, y + line_h), fill=bg)
                     if ch != "▀":
                         draw.text((x, y), ch, font=self.font, fill=fg)
                 elif ch != " ":
                     draw.text((x, y), ch, font=self.font, fill=fg)
                 x += cw
-            y += LINE_H
+            y += line_h
         if cursor is not None:
             cx, cy = cursor
             px = MARGIN_X + cx * self.advance
-            py = TITLE_H + MARGIN_Y + cy * LINE_H
-            draw.rectangle((px, py, px + self.advance - 2, py + LINE_H), fill=TEXT)
+            py = TITLE_H + MARGIN_Y + cy * line_h
+            draw.rectangle((px, py, px + self.advance - 2, py + line_h), fill=TEXT)
         return img
 
 

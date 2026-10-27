@@ -109,6 +109,9 @@ class TestImageCommand(unittest.TestCase):
         code, out, err = run_cli("image", str(self.path), "-w", "20", "--format", "braille")
         self.assertEqual(code, 0, err)
         self.assertTrue(all(ord(ch) >= 0x2800 for ch in out if ch not in "\n"))
+        # -w counts terminal columns, and every braille cell is one column
+        lines = out.strip("\n").splitlines()
+        self.assertTrue(all(len(line) == 20 for line in lines))
 
     def test_blocks_color_suppressed_when_piped(self):
         code, out, err = run_cli(

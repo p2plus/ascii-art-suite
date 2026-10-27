@@ -150,7 +150,8 @@ def cmd_image(args: argparse.Namespace, out: io.TextIOBase) -> None:
         aspect = args.aspect
     try:
         if args.format == "braille":
-            grid = imaging.to_grid(img.convert("L"), cols, aspect)
+            # two grid columns per braille character: -w is terminal columns
+            grid = imaging.to_grid(img.convert("L"), cols * 2, aspect)
             grid = imaging.adjust_tone(
                 grid, args.brightness, args.contrast, args.gamma,
                 args.invert, args.auto_levels,
