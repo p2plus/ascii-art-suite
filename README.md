@@ -238,7 +238,7 @@ want to build on it.
 ## Development
 
 ```sh
-python3 -m unittest discover -s tests    # 77 tests, no dependencies needed
+python3 -m unittest discover -s tests    # 82 tests, no dependencies needed
 python3 -m asciiart demo                 # a tour of fonts, ramps, renderers
 ```
 

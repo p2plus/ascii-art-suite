@@ -9,7 +9,7 @@ description = "Images to terminal art and text to FIGlet banners: native FIGfont
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "asciiart contributors" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["ascii", "asciiart", "figlet", "figfont", "terminal", "braille", "ansicolor"]
 classifiers = [
     "Environment :: Console",
