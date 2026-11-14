@@ -163,15 +163,20 @@ def cmd_image(args: argparse.Namespace, out: io.TextIOBase) -> None:
         elif args.format == "blocks":
             depth = _color_depth(args.color)
             grid = imaging.to_grid(img, cols, aspect)
-            grid = imaging.adjust_tone(
-                grid.convert("L"), args.brightness, args.contrast, args.gamma,
-                args.invert, args.auto_levels,
-            )
             if depth:
-                rgb = grid.convert("RGB")
-                pixels = imaging.pixel_grid_rgb(rgb)
+                # tone correction on RGB: converting to L first would
+                # destroy the colors we are about to render
+                grid = imaging.adjust_tone(
+                    grid, args.brightness, args.contrast, args.gamma,
+                    args.invert, args.auto_levels,
+                )
+                pixels = imaging.pixel_grid_rgb(grid)
                 lines = render.to_blocks_color(pixels, depth=depth)
             else:
+                grid = imaging.adjust_tone(
+                    grid.convert("L"), args.brightness, args.contrast, args.gamma,
+                    args.invert, args.auto_levels,
+                )
                 pixels = imaging.pixel_grid_gray(grid)
                 lines = render.to_blocks_mono(pixels)
         else:

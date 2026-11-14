@@ -1,6 +1,7 @@
 import contextlib
 import io
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -127,6 +128,30 @@ class TestImageCommand(unittest.TestCase):
         )
         self.assertEqual(code, 0, err)
         self.assertIn("\x1b[38;2;", out)
+
+    def test_blocks_color_survives_tone_correction(self):
+        # regression: tone correction must not collapse RGB to grayscale
+        import io as _io
+
+        from PIL import Image
+
+        hue = Image.new("RGB", (20, 10))
+        hue.putdata([(200, 40, 30) for _ in range(20) for _ in range(10)])
+        buffer = _io.BytesIO()
+        hue.save(buffer, "PNG")
+        colored = Path(self.tmp.name) / "hue.png"
+        colored.write_bytes(buffer.getvalue())
+        code, out, err = run_cli(
+            "image", str(colored), "-w", "10", "--format", "blocks",
+            "--color", "24bit", "--gamma", "1.5",
+        )
+        self.assertEqual(code, 0, err)
+        codes = re.findall(r"\x1b\[38;2;(\d+);(\d+);(\d+)m", out)
+        self.assertTrue(codes)
+        self.assertTrue(
+            any(not (r == g == b) for r, g, b in codes),
+            "colored input must produce non-gray output",
+        )
 
     def test_no_color_env_wins(self):
         env = dict(os.environ, NO_COLOR="1")

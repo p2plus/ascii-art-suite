@@ -6,6 +6,7 @@ renderer supports it.
 """
 from __future__ import annotations
 
+import functools
 from typing import Sequence
 
 BRAILLE_OFFSET = 0x2800
@@ -41,8 +42,13 @@ def quantize_256(r: int, g: int, b: int) -> int:
 
     Indices 0-15 are the terminal-configurable ANSI primaries and are
     deliberately skipped; the 6x6x6 cube (16-231) and the gray ramp
-    (232-255) have defined colors.
+    (232-255) have defined colors. Memoized: posters repeat colors heavily.
     """
+    return _quantize_uncached(r, g, b)
+
+
+@functools.lru_cache(maxsize=1 << 16)
+def _quantize_uncached(r: int, g: int, b: int) -> int:
     palette = _palette()
     best, best_dist = 16, 1 << 30
     for index in range(16, 256):

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ascii-art-suite"
-version = "1.0.0"
+version = "1.0.1"
 description = "Images to terminal art and text to FIGlet banners: native FIGfont engine, ANSI half-blocks, Unicode braille."
 readme = "README.md"
 license = { text = "MIT" }

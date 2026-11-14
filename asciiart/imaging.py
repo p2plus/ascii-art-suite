@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 import os
+from typing import Callable
 
 try:
     from PIL import Image, ImageOps
@@ -79,6 +80,12 @@ def to_grid(
     return img.resize((cols, rows), Image.Resampling.LANCZOS)  # type: ignore[attr-defined]
 
 
+def _lut_for(img: "Image.Image", make: "Callable[[int], int]") -> list[int]:
+    """256-entry LUT, repeated per band so multiband point() accepts it."""
+    lut = [make(v) for v in range(256)]
+    return lut * len(img.getbands()) if len(img.getbands()) > 1 else lut
+
+
 def adjust_tone(
     gray: "Image.Image",
     brightness: float = 1.0,
@@ -87,30 +94,44 @@ def adjust_tone(
     invert: bool = False,
     auto_levels: bool = False,
 ) -> "Image.Image":
-    """Apply tone controls to an L-mode image, in a sensible order."""
+    """Apply tone controls to an image (L or RGB), in a sensible order.
+
+    Point LUTs apply equally to every band, so RGB survives intact; only
+    auto-levels needs band separation (per-channel histogram stretch).
+    """
     out = gray
     if auto_levels:
-        out = ImageOps.autocontrast(out, cutoff=2)
+        if out.mode == "RGB":
+            out = Image.merge("RGB", [ImageOps.autocontrast(band, cutoff=2)
+                                      for band in out.split()])
+        else:
+            out = ImageOps.autocontrast(out, cutoff=2)
     if brightness != 1.0:
-        lut = [min(255, max(0, round(v * brightness))) for v in range(256)]
-        out = out.point(lut)
+        out = out.point(_lut_for(out, lambda v: min(255, max(0, round(v * brightness)))))
     if contrast != 1.0:
-        lut = [min(255, max(0, round((v - 128) * contrast + 128))) for v in range(256)]
-        out = out.point(lut)
+        out = out.point(_lut_for(out, lambda v: min(255, max(0, round((v - 128) * contrast + 128)))))
     if gamma != 1.0:
         # Exponent > 1 darkens midtones, matching e.g. ImageMagick -gamma.
-        lut = [round(255 * ((v / 255) ** gamma)) for v in range(256)]
-        out = out.point(lut)
+        out = out.point(_lut_for(out, lambda v: round(255 * ((v / 255) ** gamma))))
     if invert:
         out = ImageOps.invert(out)
     return out
 
 
 def pixel_grid_gray(img: "Image.Image") -> list[list[int]]:
-    data = list(img.getdata())
-    return [data[y * img.width : (y + 1) * img.width] for y in range(img.height)]
+    if img.mode != "L":
+        img = img.convert("L")
+    raw = img.tobytes()
+    w = img.width
+    return [list(raw[y * w : (y + 1) * w]) for y in range(img.height)]
 
 
 def pixel_grid_rgb(img: "Image.Image") -> list[list[tuple[int, int, int]]]:
-    data = list(img.getdata())
-    return [data[y * img.width : (y + 1) * img.width] for y in range(img.height)]
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    raw = img.tobytes()
+    w = img.width
+    return [
+        [tuple(raw[(y * w + x) * 3 : (y * w + x) * 3 + 3]) for x in range(w)]
+        for y in range(img.height)
+    ]

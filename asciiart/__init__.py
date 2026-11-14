@@ -15,7 +15,7 @@ Library quick start::
 """
 from __future__ import annotations
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from .charsets import CHARSETS
 from .figlet import FigFont, FontError, list_fonts, load_font, render_text
